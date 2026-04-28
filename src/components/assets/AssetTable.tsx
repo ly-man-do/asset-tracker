@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Plus,
   Download,
+  Upload,
   MoreHorizontal,
   ChevronRight,
 } from "lucide-react";
@@ -50,6 +51,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/assets/StatusBadge";
 import { BulkActionBar } from "@/components/assets/BulkActionBar";
+import { CsvImportDialog } from "@/components/assets/CsvImportDialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { AssetWithCounts } from "@/types";
 
@@ -73,6 +75,7 @@ export function AssetTable() {
   const [selected, setSelected] = useState(new Set<string>());
   const [deleteTarget, setDeleteTarget] = useState<AssetWithCounts | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchAssets = useCallback(async () => {
     setLoading(true);
@@ -197,6 +200,10 @@ export function AssetTable() {
               Export CSV
             </Button>
           </a>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-1.5" />
+            Import CSV
+          </Button>
           <Link href="/assets/new">
             <Button size="sm">
               <Plus className="h-4 w-4 mr-1.5" />
@@ -425,6 +432,12 @@ export function AssetTable() {
           )}
         </div>
       </div>
+
+      <CsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={fetchAssets}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
