@@ -65,6 +65,7 @@ export function AssetTable() {
   const sort = (searchParams.get("sort") ?? "createdAt") as SortField;
   const order = (searchParams.get("order") ?? "desc") as "asc" | "desc";
   const page = parseInt(searchParams.get("page") ?? "1");
+  const limit = parseInt(searchParams.get("limit") ?? "10");
 
   const [assets, setAssets] = useState<AssetWithCounts[]>([]);
   const [total, setTotal] = useState(0);
@@ -72,8 +73,6 @@ export function AssetTable() {
   const [selected, setSelected] = useState(new Set<string>());
   const [deleteTarget, setDeleteTarget] = useState<AssetWithCounts | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
-
-  const limit = 50;
 
   const fetchAssets = useCallback(async () => {
     setLoading(true);
@@ -104,9 +103,10 @@ export function AssetTable() {
         params.delete(k);
       } else {
         params.set(k, v);
-        if (k !== "page") params.set("page", "1");
       }
     }
+    // Reset to page 1 on any change except page itself
+    if (!("page" in updates)) params.set("page", "1");
     router.push(`${pathname}?${params}`);
   }
 
@@ -281,7 +281,7 @@ export function AssetTable() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
+              Array.from({ length: limit }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 10 }).map((_, j) => (
                     <TableCell key={j}>
@@ -379,32 +379,52 @@ export function AssetTable() {
       </div>
 
       {/* Pagination */}
-      {total > limit && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{total} total assets</span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => updateParams({ page: String(page - 1) })}
+      <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground flex-wrap">
+        <span>
+          {total === 0 ? "No assets" : `${((page - 1) * limit) + 1}–${Math.min(page * limit, total)} of ${total} asset${total !== 1 ? "s" : ""}`}
+        </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs">Per page</span>
+            <Select
+              value={String(limit)}
+              onValueChange={(v) => updateParams({ limit: v })}
             >
-              Previous
-            </Button>
-            <span className="flex items-center px-2">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => updateParams({ page: String(page + 1) })}
-            >
-              Next
-            </Button>
+              <SelectTrigger className="h-8 w-20 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => updateParams({ page: String(page - 1) })}
+              >
+                Previous
+              </Button>
+              <span className="px-1">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => updateParams({ page: String(page + 1) })}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
