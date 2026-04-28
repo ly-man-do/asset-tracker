@@ -30,13 +30,18 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma migration files and CLI for migrate deploy
-# Note: Prisma 7 + libsql adapter is pure JS — no node_modules/.prisma binary engine
+# Copy Prisma migration files and all runtime dependencies
+# Prisma 7 + libsql adapter is pure JS — no binary query engine needed
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+
+# Create the prisma CLI symlink that npm normally sets up
+RUN mkdir -p node_modules/.bin && \
+    ln -sf ../prisma/build/index.js node_modules/.bin/prisma && \
+    chmod +x node_modules/prisma/build/index.js
 
 # Create upload and data dirs
 RUN mkdir -p /uploads /data && chown nextjs:nodejs /uploads /data
@@ -47,4 +52,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "DATABASE_URL=file:/data/assets.db ./node_modules/.bin/prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "DATABASE_URL=file:/data/assets.db node_modules/.bin/prisma migrate deploy && node server.js"]
