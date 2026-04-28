@@ -1,0 +1,54 @@
+generator client {
+  provider      = "prisma-client"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Asset {
+  id               String      @id @default(cuid())
+  name             String
+  manufacturer     String?
+  modelNumber      String?
+  serialNumber     String?
+  purchaseDate     DateTime?
+  purchasePrice    Float?
+  purchaseLocation String?
+  quantity         Int         @default(1)
+  url              String?
+  status           AssetStatus @default(ACTIVE)
+  salePrice        Float?
+  saleDate         DateTime?
+  notes            String?
+  warrantyExpiry   DateTime?
+  warrantyNotes    String?
+
+  parentId String?
+  parent   Asset?  @relation("SubItems", fields: [parentId], references: [id], onDelete: SetNull)
+  subItems Asset[] @relation("SubItems")
+
+  attachments Attachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AssetStatus {
+  ACTIVE
+  SOLD
+  LOST
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  assetId      String
+  asset        Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  filename     String
+  originalName String
+  size         Int
+  mimeType     String
+  createdAt    DateTime @default(now())
+}

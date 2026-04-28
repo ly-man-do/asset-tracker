@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Asset Tracker
 
-## Getting Started
+A self-hosted personal asset management app. Track what you own, what you paid, where you bought it, and whether you made a profit when you sold it.
 
-First, run the development server:
+Runs in Docker on your local network — no cloud account required.
+
+![Dashboard](https://placehold.co/900x500/1a1a1a/666666?text=Asset+Tracker)
+
+---
+
+## Features
+
+- **Asset records** — name, manufacturer, model/serial number, purchase date, price, store, quantity, and product URL
+- **Status tracking** — Active, Sold, or Lost, with sale price/date and automatic profit & loss calculation
+- **Warranty tracking** — expiry date with Active / Expiring Soon / Expired indicators
+- **File attachments** — upload receipts, manuals, or photos (up to 50 MB each)
+- **Sub-items** — nest accessories or components under a parent asset
+- **Dashboard** — total asset value, realized P&L, and lost asset count at a glance
+- **Table view** — sortable columns, status filter, bulk delete, and CSV export
+- **⌘K search** — fuzzy search across all assets from anywhere in the app
+- **Appearance settings** — light, dark, or system mode + 12 accent color themes
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, TypeScript) |
+| UI | shadcn/ui + Tailwind CSS v4 |
+| Database | SQLite via Prisma 7 + libsql adapter |
+| File storage | Local filesystem (Docker volume) |
+| Container | Docker + Docker Compose |
+
+---
+
+## Quick Start (Docker)
+
+**Prerequisites:** Docker and Docker Compose installed.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/YOUR_USERNAME/asset-tracker.git
+cd asset-tracker
+docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Data persists in two named Docker volumes:
+- `db_data` — SQLite database at `/data/assets.db`
+- `uploads` — file attachments at `/uploads`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `file:/data/assets.db` | libsql connection string |
+| `UPLOAD_DIR` | `/uploads` | Directory for uploaded files |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+These are set automatically by `docker-compose.yml`. For local development, copy `.env.example` to `.env`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Local Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Prerequisites:** Node.js 20+.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+cp .env.example .env          # uses prisma/dev.db by default
+npx prisma migrate dev
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx                  # Dashboard
+│   ├── assets/                   # Asset list, detail, add, edit
+│   ├── settings/                 # Appearance settings
+│   └── api/                      # REST API routes
+│       ├── assets/               # CRUD + CSV export
+│       └── uploads/              # File serving
+├── components/
+│   ├── assets/                   # AssetTable, AssetForm, SearchBar, …
+│   ├── dashboard/                # StatCard, RecentAssets
+│   ├── layout/                   # Sidebar, Header, ThemeToggle
+│   └── providers/                # ThemeProvider, ThemeColorProvider
+└── lib/
+    ├── prisma.ts                 # Singleton Prisma client
+    ├── upload.ts                 # File save/delete helpers
+    ├── csv.ts                    # CSV export
+    └── validations/asset.ts      # Zod schema
+```
+
+---
+
+## Docker Volumes
+
+To back up your data:
+
+```bash
+# Database
+docker run --rm -v asset-tracker_db_data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/db_backup.tar.gz /data
+
+# Uploads
+docker run --rm -v asset-tracker_uploads:/uploads -v $(pwd):/backup \
+  alpine tar czf /backup/uploads_backup.tar.gz /uploads
+```
+
+---
+
+## License
+
+MIT

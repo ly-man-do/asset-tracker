@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:/data/assets.db"
+      UPLOAD_DIR: "/uploads"
+    volumes:
+      - db_data:/data
+      - uploads:/uploads
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  uploads:
