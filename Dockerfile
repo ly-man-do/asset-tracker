@@ -25,25 +25,19 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy built output
+# Copy Next.js built output
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma migration files and all runtime dependencies
-# Prisma 7 + libsql adapter is pure JS — no binary query engine needed
+# Copy full node_modules so the Prisma CLI and all its dependencies are available
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy Prisma schema, config, and migrations
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Create the prisma CLI symlink that npm normally sets up
-RUN mkdir -p node_modules/.bin && \
-    ln -sf ../prisma/build/index.js node_modules/.bin/prisma && \
-    chmod +x node_modules/prisma/build/index.js
-
-# Create upload and data dirs
+# Create upload and data dirs with correct ownership
 RUN mkdir -p /uploads /data && chown nextjs:nodejs /uploads /data
 
 USER nextjs
